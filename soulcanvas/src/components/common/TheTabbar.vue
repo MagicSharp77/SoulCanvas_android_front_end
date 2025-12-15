@@ -59,15 +59,17 @@ const handleTabClick = (e: MouseEvent) => {
 }
 
 .tabbar {
-  height: 104px;
+  height: 64px;
+  background-color: #FFFFFF;
+  border-top: 2px solid #F2EFEF;
 
   &-name {
-    font-size: 24px;
+    font-size: 12px;
     color: #000000;
   }
 
   &-icon {
-    height: 48px !important;
+    height: 24px !important;
   }
 }
 </style>
