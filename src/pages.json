@@ -19,32 +19,6 @@
       }
     }
   ],
-  "tabBar": {
-    "color": "#4D4C4D",
-    "selectedColor": "#000000",
-    "backgroundColor": "#FFFFFF",
-    "borderStyle": "black",
-    "list": [
-      {
-        "pagePath": "pages/learn/index",
-        "text": "Learn",
-        "iconPath": "static/icons/learn-inactive.svg",
-        "selectedIconPath": "static/icons/learn-active.svg"
-      },
-      {
-        "pagePath": "pages/list/index",
-        "text": "List",
-        "iconPath": "static/icons/list-inactive.svg",
-        "selectedIconPath": "static/icons/list-active.svg"
-      },
-      {
-        "pagePath": "pages/profile/index",
-        "text": "Profile",
-        "iconPath": "static/icons/profile-inactive.svg",
-        "selectedIconPath": "static/icons/profile-active.svg"
-      }
-    ]
-  },
   "globalStyle": {
     "navigationBarTextStyle": "black",
     "navigationBarBackgroundColor": "#F8F8F8",
