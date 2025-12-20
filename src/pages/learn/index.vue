@@ -38,8 +38,8 @@
 
         <!-- Translation -->
         <view class="translation-box">
-          <text class="translation-label">中文释义</text>
-          <text class="translation-text">{{ currentWord.translation }}</text>
+          <text class="translation-label">Definition</text>
+          <text class="translation-text">{{ currentWord.definition }}</text>
         </view>
 
         <!-- Example -->
