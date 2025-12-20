@@ -71,8 +71,7 @@ const handleMenuClick = (type) => {
 
 <style scoped>
 .page-container {
-    min-height: 100vh;
-    background: #F8F8F8;
+    background: #FFFFFF;
     padding: 40rpx 32rpx 120rpx;
 }
 
