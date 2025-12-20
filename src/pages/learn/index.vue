@@ -3,6 +3,7 @@
     <!-- Header -->
     <view class="header">
       <text class="header-title">Daily Study</text>
+      <img class="header-img" src="/static/icons/next.svg" alt=""></img>
     </view>
 
     <!-- Word Card -->
@@ -61,8 +62,9 @@
 
 <script setup>
 import TheTabbar from "../../components/common/TheTabbar.vue";
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { wordCards, getRandomWord } from "../../mock/wordData.js";
+import { getWordDetail, login } from "../../api/api";
 
 // Current word data
 const currentWord = ref(wordCards[0]);
@@ -98,6 +100,19 @@ const getHighlightedExample = () => {
     after: example.substring(index + word.length)
   };
 };
+
+onMounted(async () => {
+  try {
+    await login({
+      userId: '20251218',
+      externalId: '20251218'
+    }).then((res) => {
+      console.log(res);
+    });
+  } catch (error) {
+    console.log(error);
+  }
+});
 </script>
 
 <style scoped>
@@ -109,6 +124,9 @@ const getHighlightedExample = () => {
 
 /* Header */
 .header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 24rpx;
 }
 
@@ -118,6 +136,11 @@ const getHighlightedExample = () => {
   font-weight: 700;
   color: #000000;
   margin-bottom: 8rpx;
+}
+
+.header-img {
+  width: 48rpx;
+  height: 48rpx;
 }
 
 .header-subtitle {

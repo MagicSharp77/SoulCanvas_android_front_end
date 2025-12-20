@@ -1,7 +1,8 @@
 <template>
-  <van-tabbar route active-color="#000000" :fixed="true" :border="false" inactive-color="#4D4C4D" class="tabbar">
-    <template v-for="item in tabbarOptions" :key="item.link">
-      <van-tabbar-item :to="item.link" @click="handleTabClick($event)">
+  <van-tabbar v-model="active" active-color="#000000" :fixed="true" :border="false" inactive-color="#4D4C4D"
+    class="tabbar">
+    <template v-for="(item, index) in tabbarOptions" :key="item.link">
+      <van-tabbar-item @click="handleTabClick(item, index)">
         <span class="tabbar-name">{{ item.name }}</span>
         <template #icon="props">
           <!-- 使用vue给的插槽变量 active -->
@@ -13,43 +14,53 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 // import { useUserStore } from '@/stores/user'
 // const userStore = useUserStore()
 // import config from '@/config/index'
 // import { showToast } from 'vant'
-const workIcon =
-  'https://bucket-zxq-file-public-prod-1.oss-cn-shenzhen.aliyuncs.com/jiangsu/static/product/work.png'
-const workUp =
-  'https://bucket-zxq-file-public-prod-1.oss-cn-shenzhen.aliyuncs.com/jiangsu/static/product/work_up.png'
+
+const active = ref(0)
+
+// Get current page path to set active tab
+onMounted(() => {
+  const pages = getCurrentPages()
+  const currentPage = pages[pages.length - 1]
+  const route = '/' + currentPage.route
+
+  const index = tabbarOptions.value.findIndex(item => item.link === route)
+  if (index !== -1) {
+    active.value = index
+  }
+})
+
 const tabbarOptions = computed(() => [
   {
-    name: '推荐',
-    icon: workUp,
-    actIcon: workIcon,
-    link: '/home'
+    name: 'Learn',
+    icon: '/static/icons/learn-inactive.svg',
+    actIcon: '/static/icons/learn-active.svg',
+    link: '/pages/learn/index'
   },
   {
-    name: '工作台',
-    icon: workUp,
-    actIcon: workIcon,
-    link: '/workbench'
+    name: 'List',
+    icon: '/static/icons/list-inactive.svg',
+    actIcon: '/static/icons/list-active.svg',
+    link: '/pages/list/index'
   },
   {
-    name: '我的',
-    icon: workUp,
-    actIcon: workIcon,
-    link: '/my'
+    name: 'Profile',
+    icon: '/static/icons/profile-inactive.svg',
+    actIcon: '/static/icons/profile-active.svg',
+    link: '/pages/profile/index'
   }
 ])
 
-const handleTabClick = (e: MouseEvent) => {
-  console.log('判断是否需要登陆', e)
-  // if (!userStore.getToken) {
-  //   e.preventDefault()
-  //   showToast('请先登录')
-  //   userStore.logout()
-  // }
+const handleTabClick = (item: any, index: number) => {
+  console.log('Navigating to:', item.link)
+  active.value = index
+  uni.switchTab({
+    url: item.link
+  });
 }
 </script>
 
