@@ -63,7 +63,7 @@ import TheTabbar from "../../components/common/TheTabbar.vue";
 
 const handleMenuClick = (type) => {
     uni.showToast({
-        title: `${type} clicked`,
+        title: `${type}: 功能开发中`,
         icon: 'none'
     });
 };
