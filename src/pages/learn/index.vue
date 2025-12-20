@@ -3,7 +3,6 @@
     <!-- Header -->
     <view class="header">
       <text class="header-title">Daily Study</text>
-      <img class="header-img" src="/static/icons/next.svg" alt=""></img>
     </view>
 
     <!-- Word Card -->
@@ -16,10 +15,10 @@
 
       <!-- Word Image -->
       <view class="word-image-container">
-        <image class="word-image" :src="currentWord.imageUrl" mode="aspectFill"></image>
+        <image class="word-image" :src="currentWord.imageUrl || defaultWordImg" mode="aspectFill"></image>
 
         <!-- Refresh Button -->
-        <view class="refresh-btn" @click="refreshWord">
+        <view class="refresh-btn" @click="changeAIImage">
           <image class="refresh-icon" src="/static/icons/ai-get-img.png" mode="aspectFit"></image>
         </view>
       </view>
@@ -53,6 +52,11 @@
           </text>
         </view>
       </view>
+
+      <view class="word-next">
+        <button class="remember-btn" @click="refreshWord">has remembered!</button>
+        <!-- <img class="next-img" src="/static/icons/next.svg" alt="" @click="refreshWord"></img> -->
+      </view>
     </view>
 
     <!-- Tabbar -->
@@ -63,28 +67,203 @@
 <script setup>
 import TheTabbar from "../../components/common/TheTabbar.vue";
 import { ref, computed, onMounted } from "vue";
-import { wordCards, getRandomWord } from "../../mock/wordData.js";
-import { getWordDetail, login } from "../../api/api";
+import {
+  login,
+  createPlan,
+  getMyPlans,
+  getReviewDue,
+  makeWordTask,
+  getToBeCompleted,
+  getWordDetail,
+  getBatchWordDetails,
+  submitWordResult
+} from "../../api/api";
 
-// Current word data
-const currentWord = ref(wordCards[0]);
-
-// Refresh word
-const refreshWord = () => {
-  currentWord.value = getRandomWord();
+// State
+const currentWord = ref(null);
+const wordQueue = ref([]); // 待学习的单词队列
+const currentPlanId = ref(null);
+const isLoading = ref(false);
+const currentWordIndex = ref(0);
+const defaultWordImg = "/static/icons/default-img.png"
+// 默认占位数据
+const defaultWord = {
+  id: 0,
+  word: "Loading...",
+  phonetic: "",
+  translation: "正在加载单词...",
+  definition: "",
+  example: "Please wait while we fetch your words.",
+  imageUrl: "/static/icons/default-img.png",
+  audioUrl: ""
 };
 
-// Play audio
-const playAudio = () => {
-  // In a real app, you would use uni.createInnerAudioContext()
+currentWord.value = defaultWord;
+
+// 初始化学习流程
+const initLearning = async () => {
+  try {
+    isLoading.value = true;
+
+    // 1. 登录
+    const authRes = await login({
+      userId: '20251218',
+      externalId: '20251218'
+    });
+    console.log('登录成功:', authRes);
+
+    // 保存 token
+    if (authRes.token) {
+      localStorage.setItem('token', authRes.token);
+    }
+
+    // 2. 获取用户计划
+    const plans = await getMyPlans();
+    console.log('用户计划:', plans);
+
+    if (!plans || plans.length <= 0) {
+      const newPlan = createPlan({ tag: "cet4", dailyNewTarget: 20, dailyReviewTarget: 60 })
+      console.log(newPlan)
+    }
+    if (plans && plans.length > 0) {
+
+      currentPlanId.value = plans[0].id;
+
+
+      // 3. 先尝试获取待复习的单词
+      let reviewWords = await getReviewDue(currentPlanId.value, 20);
+      console.log('待复习单词:', reviewWords);
+
+      // 4. 如果没有待复习的，获取新词
+      if (!reviewWords || reviewWords.length === 0) {
+        const makeTaskRes = await makeWordTask(currentPlanId.value, 10);
+        console.log('创建新词任务:', makeTaskRes);
+
+        const newWords = await getToBeCompleted(currentPlanId.value);
+        console.log('待学习新词:', newWords);
+        reviewWords = newWords;
+      }
+
+      // 5. 提取单词 ID 并批量获取详情
+      if (reviewWords && reviewWords.length > 0) {
+        const wordIds = reviewWords.map(w => w.wordId);
+        const wordDetails = await getBatchWordDetails(wordIds);
+        console.log('单词详情:', wordDetails);
+
+        wordQueue.value = wordDetails;
+        currentWordIndex.value = 0;
+
+        // 加载第一个单词
+        if (wordDetails.length > 0) {
+          await loadWordDetail(wordDetails[0].id);
+        }
+      } else {
+        uni.showToast({
+          title: '暂无待学习单词',
+          icon: 'none'
+        });
+      }
+    } else {
+      uni.showToast({
+        title: '请先创建学习计划',
+        icon: 'none'
+      });
+    }
+  } catch (error) {
+    console.error('初始化学习流程失败:', error);
+    uni.showToast({
+      title: '加载失败，请重试',
+      icon: 'none'
+    });
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+// 加载单词详情
+const loadWordDetail = async (wordId) => {
+  try {
+    const detail = await getWordDetail(wordId);
+    console.log('单词详情:', detail);
+
+    // 转换为页面需要的格式
+    currentWord.value = {
+      id: detail.id,
+      word: detail.word,
+      phonetic: detail.phonetic || '',
+      translation: detail.translation,
+      definition: detail.definition || '',
+      example: `This is an example sentence using the word ${detail.word}.`, // 暂时使用默认例句
+      imageUrl: "/static/word-images/default.png", // 暂时使用默认图片
+      audioUrl: detail.audio || ''
+    };
+  } catch (error) {
+    console.error('加载单词详情失败:', error);
+  }
+};
+
+// 刷新单词（标记为已记住并加载下一个）
+const refreshWord = async () => {
+  if (!currentWord.value || currentWord.value.id === 0) return;
+
+  try {
+    // 提交学习结果为 GOOD
+    await submitWordResult(currentWord.value.id, 'GOOD');
+    console.log('提交学习结果成功');
+
+    // 移动到下一个单词
+    currentWordIndex.value++;
+
+    if (currentWordIndex.value < wordQueue.value.length) {
+      const nextWord = wordQueue.value[currentWordIndex.value];
+      await loadWordDetail(nextWord.id);
+    } else {
+      uni.showToast({
+        title: '今日学习完成！',
+        icon: 'success'
+      });
+      // 重新初始化，获取新的单词
+      setTimeout(() => {
+        initLearning();
+      }, 1500);
+    }
+  } catch (error) {
+    console.error('提交学习结果失败:', error);
+    uni.showToast({
+      title: '提交失败，请重试',
+      icon: 'none'
+    });
+  }
+};
+
+const changeAIImage = () => {
   uni.showToast({
-    title: '播放发音',
+    title: `获取AI图片功能正在开发中`,
     icon: 'none'
   });
 };
 
+// Play audio
+const playAudio = () => {
+  if (currentWord.value && currentWord.value.audioUrl) {
+    // TODO: 实现音频播放
+    const innerAudioContext = uni.createInnerAudioContext();
+    innerAudioContext.src = currentWord.value.audioUrl;
+    innerAudioContext.play();
+  } else {
+    uni.showToast({
+      title: '音频功能正在开发中',
+      icon: 'none'
+    });
+  }
+};
+
 // Get highlighted example text
 const getHighlightedExample = () => {
+  if (!currentWord.value || !currentWord.value.example) {
+    return { before: '', word: '', after: '' };
+  }
+
   const example = currentWord.value.example;
   const word = currentWord.value.word.toLowerCase();
   const lowerExample = example.toLowerCase();
@@ -102,16 +281,7 @@ const getHighlightedExample = () => {
 };
 
 onMounted(async () => {
-  try {
-    await login({
-      userId: '20251218',
-      externalId: '20251218'
-    }).then((res) => {
-      console.log(res);
-    });
-  } catch (error) {
-    console.log(error);
-  }
+  await initLearning();
 });
 </script>
 
@@ -138,10 +308,6 @@ onMounted(async () => {
   margin-bottom: 8rpx;
 }
 
-.header-img {
-  width: 48rpx;
-  height: 48rpx;
-}
 
 .header-subtitle {
   display: block;
@@ -220,7 +386,7 @@ onMounted(async () => {
 
 /* Word Content */
 .word-content {
-  padding: 32rpx 32rpx 40rpx;
+  padding: 32rpx 32rpx 24rpx;
 }
 
 /* Word Header */
@@ -316,5 +482,41 @@ onMounted(async () => {
 .highlighted {
   color: #6B5DD3;
   font-weight: 600;
+}
+
+.word-next {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20rpx;
+  margin-bottom: 24rpx;
+}
+
+:deep(uni-button:after) {
+  border: none !important;
+  /* 或者使用 border-width: 0 */
+  border-width: 0 !important;
+}
+
+.remember-btn {
+  background: #F3F0FF;
+  color: #6B5DD3;
+  font-size: 32rpx;
+  font-weight: 600;
+  border: none;
+  border-radius: 64rpx;
+  margin: 0 32rpx;
+  /* padding: 24rpx 48rpx; */
+  width: 100%;
+  transition: opacity 0.2s;
+}
+
+.remember-btn:active {
+  opacity: 0.8;
+}
+
+.next-img {
+  width: 48rpx;
+  height: 48rpx;
 }
 </style>
