@@ -85,7 +85,7 @@ const wordQueue = ref([]); // 待学习的单词队列
 const currentPlanId = ref(null);
 const isLoading = ref(false);
 const currentWordIndex = ref(0);
-const defaultWordImg = "/static/icons/default-img.png"
+const defaultWordImg = "/static/icons/default-img.jpg"
 // 默认占位数据
 const defaultWord = {
   id: 0,
@@ -94,7 +94,7 @@ const defaultWord = {
   translation: "正在加载单词...",
   definition: "",
   example: "Please wait while we fetch your words.",
-  imageUrl: "/static/icons/default-img.png",
+  imageUrl: defaultWordImg,
   audioUrl: ""
 };
 
@@ -194,7 +194,7 @@ const loadWordDetail = async (wordId) => {
       translation: detail.translation,
       definition: detail.definition || '',
       example: `This is an example sentence using the word ${detail.word}.`, // 暂时使用默认例句
-      imageUrl: "/static/word-images/default.png", // 暂时使用默认图片
+      imageUrl: defaultWordImg,
       audioUrl: detail.audio || ''
     };
   } catch (error) {
